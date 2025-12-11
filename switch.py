@@ -30,11 +30,11 @@ class ObicoSwitch(CoordinatorEntity, SwitchEntity):
         """Turn the API communication on."""
         self._is_on = True
         self.coordinator.api_enabled = True  # Enable API communication
-        self.coordinator.async_request_refresh()  # Fetch data immediately
-        self.async_write_ha_state()
+        await self.coordinator.async_request_refresh()  # Fetch data immediately
+        await self.async_write_ha_state()
 
     async def async_turn_off(self, **kwargs) -> None:
         """Turn the API communication off."""
         self._is_on = False
         self.coordinator.api_enabled = False  # Disable API communication
-        self.async_write_ha_state()
+        await self.async_write_ha_state()
