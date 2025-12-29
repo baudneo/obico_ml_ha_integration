@@ -1,0 +1,57 @@
+{
+    "config": {
+        "step": {
+            "user": {
+                "title": "Connect to an Obico ML API Wrapper Server",
+                "description": "Configure the connection to your self-hosted Obico ML API Wrapper.",
+                "data": {
+                    "url": "API URL",
+                    "camera_entity": "Camera/Picture to Monitor",
+                    "interval": "API Connection Check Interval (seconds)",
+                    "threshold": "Failure Confidence Threshold (0.0 - 1.0)"
+                }
+            }
+        },
+        "error": {
+            "cannot_connect": "Failed to connect",
+            "invalid_url": "Invalid URL format"
+        },
+        "abort": {
+            "already_configured": "This combination of Camera and API URL is already configured."
+        }
+    },
+    "options": {
+        "step": {
+            "init": {
+                "title": "Obico ML Options",
+                "data": {
+                    "url": "API URL",
+                    "interval": "Connection Check Interval (seconds)",
+                    "threshold": "Failure Confidence Threshold (0.0 - 1.0)"
+                }
+            }
+        }
+    },
+    "entity": {
+        "binary_sensor": {
+            "api_connected": { "name": "API Connected" },
+            "failure_detected": { "name": "Failure Detected" }
+        },
+        "button": {
+            "trigger": { "name": "Trigger Detection" }
+        },
+        "sensor": {
+            "confidence": { "name": "Failure Confidence" },
+            "inference_time": { "name": "Inference Time" }
+        },
+        "camera": {
+            "latest_analysis": { "name": "Latest Analysis" }
+        }
+    },
+    "services": {
+        "trigger_detection": {
+            "name": "Trigger Detection",
+            "description": "Takes a snapshot immediately and sends it to the Obico ML API wrapper server for inference."
+        }
+    }
+}
