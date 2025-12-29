@@ -1,0 +1,13 @@
+{
+  "domain": "obico_ml",
+  "name": "Obico ML API Wrapper",
+  "config_flow": true,
+  "version": "0.0.1",
+  "documentation": "https://github.com/baudneo/obico_ml_ha_integration",
+  "issue_tracker": "https://github.com/baudneo/obico_ml_ha_integration/issues",
+  "requirements": [],
+  "dependencies": [],
+  "iot_class": "local_polling",
+  "codeowners": ["@baudneo"],
+  "supported_platforms": ["camera", "binary_sensor", "button", "sensor"]
+}

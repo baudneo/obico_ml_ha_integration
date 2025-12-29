@@ -1,125 +1,91 @@
-# Obico ML Home Assistant Integration
-[![hacs_badge](https://img.shields.io/badge/HACS-Custom-orange.svg?style=flat-square)](https://github.com/custom-components/hacs)
+# Obico ML API Wrapper integration for Home Assistant
 
-HA Integration for [Obico ML REST API server addon](https://github.com/nobodyguy/obico_ml_ha_addon). This integration allows you to turn any HA Camera entity into a source for Obico's AI 3D printing failure detection.
+[![hacs_badge](https://img.shields.io/badge/HACS-Custom-41BDF5.svg)](https://github.com/hacs/integration)
+[![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=baudneo&repository=obico_ml_ha_integration&category=integration)
+
+A Home Assistant integration for CUSTOM self-hosted [Obico](https://www.obico.io/) ML API servers. This integration allows you to detect 3D printing failures by analyzing images from your existing Home Assistant camera/picture entities.
+
+>[!IMPORTANT]
+> This integration is NOT affiliated with Obico.io / The Spaghetti Detective. The ML API Wrapper server is a custom wrapper built around the open source, freely available Obico .onnx model for personal use.
+> This will not work with an official 'standalone' Obico server installation, you must run the [CUSTOM ML API Wrapper server](https://github.com/baudneo/obico_ml_ha_addon).
+
+>[!NOTE]
+> This integration does not continuously stream video/images to the ML server. Instead, it offers a "Trigger" button that you can automate to run inference only when necessary (e.g., when your printer is actually printing), saving resources.
 
 ## Features
+* **On-Demand Detection**: Manually trigger detection via a Button entity or Action/Service call.
+* **Connectivity Monitoring**: Periodically checks your ML server health (`/hc` endpoint).
+* **Annotated Camera**: Generates a camera entity showing the latest image with bounding boxes around detected failures (if any).
+* **Statistics**: Sensors for Inference Time and Failure Confidence.
+* **State Restoration**: Remembers the last detection result and confidence across Home Assistant restarts using the built-in RestoreEntity class.
 
-- Automatically detects 3D printing errors by periodically sending camera images to an external detection backend.
-- Configurable detection interval, threshold, and camera entity.
-- Provides three Home Assistant entities:
-  - **Camera**: Displays the image with detected errors.
-  - **Binary Sensor**: Indicates whether any errors have been detected.
-  - **Sensor**: Indicates detected failure confidence.
-  - **Switch**: Toggles communication with the detection API.
+## Target Audience
+This integration is designed for Home Assistant users who:
+* Have a 3D printer, a camera with a clear view of the print bed and no built-in failure detection (BambuLabs P1S, etc.).
+* Want to leverage their existing Home Assistant camera setup for 3D print failure detection.
 
 ## Installation
 
-1. Install [HACS](https://hacs.xyz/) (Home Assistant Community Store) if you haven't already.
-2. Add this repository to HACS as a custom repository:
-   - Go to **HACS** > **Integrations**.
-   - Click on the three dots in the upper-right corner and select **Custom repositories**.
-   - Enter the URL: `https://github.com/nobodyguy/obico_ml_ha_integration`.
-   - Choose **Integration** as the category.
-3. Search for **Obico ML** in HACS and install the integration.
-4. Restart Home Assistant.
+### Option 1: HACS (Recommended)
+1.  Click the "Open in HACS" button above or go to HACS > Integrations > Top Right Menu > Custom Repositories.
+2.  Add `https://github.com/baudneo/obico_ml_ha_integration` as an Integration.
+3.  Search for "Obico ML API Wrapper" and install.
+4.  Restart Home Assistant.
 
-Alternatively, you can manually copy the `obico_ml_ha_integration` folder to your `custom_components` directory.
+### Option 2: Manual
+1.  Copy the `custom_components/obico_ml` directory to your `config/custom_components` directory.
+2.  Restart Home Assistant.
 
 ## Configuration
 
-To configure the integration:
+1.  Go to **Settings > Devices & services**.
+2.  Click **Add Integration** and search for **Obico ML API Wrapper**.
+3.  Enter the details for your setup:
+    * **API URL**: The full URL to your Obico ML server's detection endpoint (e.g., `http://192.168.1.50:3333/detect`).
+    * **Camera/Picture to Monitor**: Select the Home Assistant camera/picture entity you want to analyze.
+    * **Scan Interval**: How often (in seconds) to check if the ML server is online (Default: 60s). *Note: This does not trigger detection.*
+    * **Threshold**: The confidence level (0.0 - 1.0) required to consider a print as "Failed".
 
-1. Go to **Configuration** > **Integrations** in Home Assistant.
-2. Click on the **Add Integration** button.
-3. Search for **Obico ML** and click on it to configure.
-4. Fill in the configuration parameters.
+## Usage & Automation
 
-### Configuration Options
+### Entities Provided
+* **Binary Sensor**: `binary_sensor.obico_ml_failure_detected` (On = Failure, Off = Safe)
+* **Connectivity**: `binary_sensor.obico_api_connected`
+* **Button**: `button.trigger_detection` (Press to analyze the current camera frame)
+* **Camera**: `camera.obico_ml_detection_camera` (Displays the last analyzed frame with bounding boxes)
+* **Sensors**: Inference Time (ms) and Confidence (%).
 
-- **API URL**: The URL of the detection backend.
-- **Camera Entity**: The camera entity used to capture images for error detection.
-- **Detection Interval**: The interval (in seconds) between detection API calls.
-- **Detection Threshold**: Optional. The threshold for error detection sensitivity.
-
-## Provided Entities
-
-### Camera
-
-Displays the image with detected 3D printing errors. This camera entity updates periodically based on the detection interval.
-
-### Binary Sensor
-
-A binary sensor that indicates whether any errors have been detected. If errors are found in the image, the sensor will show `on`, otherwise `off`.
-
-### Sensor
-
-A numeric sensor that indicates detected failure confidence.
-
-### Switch
-
-Allows you to enable or disable the periodic communication with the detection API to save HW resources. When switched off, error detection is paused.
-
-## Example Usage
+### Service Call
+You can trigger a detection via the following service call, the target accepts either a device or an entity of the device which will be used to resolve the device.
+The "Trigger Detection" button entity can also be used to trigger detection as it uses this service under the hood.
 
 ```yaml
-# Example automation for detecting 3D printing failures
-automation:
-  - alias: "Toggle Obico ML Detection based on Printer State"
-    trigger:
-      - platform: state
-        entity_id: sensor.prusalink
-    action:
-      - choose:
-          - conditions:
-              - condition: state
-                entity_id: sensor.prusalink
-                state: "printing"
-            sequence:
-              - service: switch.turn_on
-                target:
-                  entity_id: switch.obico_ml_communication
-          - conditions:
-              - condition: not
-                conditions:
-                  - condition: state
-                    entity_id: sensor.prusalink
-                    state: "printing"
-            sequence:
-              - service: switch.turn_off
-                target:
-                  entity_id: switch.obico_ml_communication
-  - alias: "Notify on 3D printing failure"
-    trigger:
-      - platform: state
-        entity_id: binary_sensor.obico_ml_failure_detected
-        to: "on"
-    action:
-      - service: notify.notify
-        data:
-          message: "3D printing failure detected!"
-          data:
-            image: /api/camera_proxy/camera.obico_ml_detection_camera
+action: obico_ml.trigger_detection
+metadata: {}
+target:
+  device_id: 9ac78b449b222a352196dc52f00006be
+data: {}
 ```
 
-## Troubleshooting
-If you encounter issues with the integration, check the Home Assistant logs for error messages. Common issues include:
+### Example Automation
+To save resources, you should only trigger detection when your printer is active. The following automation triggers detection every minute while the printer is printing.
+You can take it a step farther and only have this automation enabled when the printer is actively printing and turn the automation off after its been idle for X mins.
 
-* Camera entity not found: Ensure that the camera entity you configured is available and working.
-* API communication issues: Verify that the detection backend is running and reachable by Home Assistant.
-
-## Issues
-
-If you encounter any issues or have feature requests, please open an issue on the [GitHub repository](https://github.com/username/ha_prusaconnect_webcam_uploader_integration/issues).
-
-## Contributing
-
-Contributions are welcome! Please open a pull request with any changes or improvements.
-
-## License
-
-This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for more information.
-
-## TODO
-* Port predictions - https://github.com/TheSpaghettiDetective/obico-server/blob/release/backend/api/octoprint_views.py#L122
-* Resize image
+```yaml
+alias: "Obico: Check for failures while printing"
+description: "Triggers Obico ML detection every minute only when the printer is printing."
+trigger:
+  - platform: time_pattern
+    minutes: "/1"  # Run every minute
+condition:
+  - condition: state
+    entity_id: sensor.bambu_p1s_print_status  # Replace with your printer status entity
+    state:
+      - running
+      - Printing
+      - printing
+action:
+  - service: button.press
+    target:
+      entity_id: button.obico_ml_p1s_trigger_detection
+mode: single

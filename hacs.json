@@ -1,6 +1,6 @@
 {
-    "name": "Obico ML HA Integration",
-    "content_in_root": true,
+    "name": "Obico ML API Wrapper Integration",
+    "content_in_root": false,
     "zip_release": false,
     "hide_default_branch": false
 }
